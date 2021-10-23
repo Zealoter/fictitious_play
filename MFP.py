@@ -34,3 +34,4 @@ hh = np.array([
 ])
 tmp = Cal(hh)
 tmp.solve(1000)
+print('1')
