@@ -1,11 +1,13 @@
 import numpy as np
+import time
+from joblib import Parallel, delayed
 
 
-class Cal(object):
+class FP(object):
     def __init__(self, matrix=None):
         self.matrix = matrix
 
-    def solve(self, num_iter, num_cpu=1):
+    def sub_solve(self, num_iter):
         x_len = self.matrix.shape[0]
         y_len = self.matrix.shape[1]
         p1_value = np.zeros(x_len)
@@ -23,8 +25,18 @@ class Cal(object):
             p1_action = np.argmax(p1_value)
             p2_action = np.argmin(p2_value)
             i_iter += 1
+        return p1_act_his, p2_act_his
 
-        print(p1_act_his, p2_act_his)
+    def solve(self, num_iter, num_cpu=1):
+        tmp_result = Parallel(n_jobs=num_cpu)(delayed(self.sub_solve)(num_iter) for _ in range(num_cpu))
+        p1_policy = np.zeros_like(tmp_result[0][0])
+        p2_policy = np.zeros_like(tmp_result[0][0])
+        for sub_ans in tmp_result:
+            p1_policy += sub_ans[0]
+            p2_policy += sub_ans[1]
+        p1_policy /= (num_iter * num_cpu)
+        p2_policy /= (num_iter * num_cpu)
+        return p1_policy, p2_policy
 
 
 hh = np.array([
@@ -32,6 +44,10 @@ hh = np.array([
     [-1, 0, 1],
     [1, -1, 0]
 ])
-tmp = Cal(hh)
-tmp.solve(1000)
-print('1')
+tmp = FP(hh)
+start = time.time()
+policy = tmp.solve(50000, 4)
+end = time.time()
+
+print(end - start)
+print(policy)
